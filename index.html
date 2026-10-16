@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#171326">
+<title>Divine Video Studio</title>
+<style>
+:root{--bg:#100e1a;--panel:#1b1828;--panel2:#252137;--gold:#f2c879;--text:#fff9ed;--muted:#bcb5cb;--line:#39334d}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#171326,#0c0b12 70%);color:var(--text);font:15px system-ui,-apple-system,Segoe UI,sans-serif}
+header{padding:18px 16px 12px;position:sticky;top:0;background:#151222ed;backdrop-filter:blur(12px);z-index:5;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px}.logo{font-size:28px}.brand h1{font-size:20px;margin:0}.brand p{font-size:12px;color:var(--muted);margin:2px 0 0}
+main{max-width:900px;margin:auto;padding:14px;display:grid;gap:14px}.card{background:var(--panel);border:1px solid var(--line);border-radius:17px;padding:14px;min-width:0}
+h2{font-size:16px;margin:0 0 12px;color:var(--gold)}.hint{font-size:12px;color:var(--muted);line-height:1.5}
+label{display:block;font-size:12px;color:var(--muted);margin:0 0 5px}
+input,select,button{font:inherit}input[type=text],input[type=number],select{width:100%;padding:11px;border-radius:10px;border:1px solid var(--line);background:#100e1a;color:var(--text);min-height:42px}
+input[type=color]{width:100%;height:42px;border:1px solid var(--line);border-radius:10px;background:#100e1a;padding:4px}
+input[type=file]{width:100%;font-size:13px;color:var(--muted)}
+button{border:0;border-radius:11px;padding:12px 14px;background:var(--gold);color:#21172a;font-weight:750;cursor:pointer}
+button.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}button:disabled{opacity:.5}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.previewWrap{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+canvas{display:block;width:min(100%,340px);max-height:58vh;aspect-ratio:9/16;background:#08070c;border-radius:14px;margin:auto;border:1px solid #3a314c}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{flex:1;min-width:130px}
+#mediaList{display:grid;gap:7px;margin-top:10px}.mediaItem{display:flex;align-items:center;gap:8px;background:#100e1a;border:1px solid var(--line);padding:8px;border-radius:10px;font-size:12px;overflow:hidden}.mediaItem span{overflow-wrap:anywhere;flex:1}.mediaItem button{padding:6px 9px;min-width:36px}
+.layer{padding:11px;background:#211d31;border-radius:12px;margin-top:10px}.layerTitle{font-weight:700;font-size:13px;margin-bottom:8px}
+#status{font-size:13px;color:var(--gold);white-space:pre-wrap;line-height:1.5}
+footer{text-align:center;color:var(--muted);font-size:11px;padding:8px 20px 24px}
+@media(min-width:760px){main{grid-template-columns:1fr 1fr}.wide{grid-column:1/-1}.previewCard{grid-column:1/-1}.previewWrap{grid-template-columns:1fr 1fr;align-items:center}canvas{max-height:65vh}}
+</style>
+</head>
+<body>
+<header><div class="brand"><div class="logo">🪔</div><div><h1>Divine Video Studio</h1><p>Devotional video maker · local-first prototype</p></div></div></header>
+<main>
+<section class="card">
+<h2>1 · Video setup</h2>
+<div class="grid2">
+<div><label for="god">God / template</label><select id="god"><option>Lord Venkateswara</option><option>Lord Shiva</option><option>Lord Ganesha</option><option>Lord Hanuman</option><option>Goddess Durga</option><option>Lord Krishna</option><option>Custom devotional</option></select></div>
+<div><label for="length">Video length (seconds)</label><input id="length" type="number" min="3" max="180" value="30"></div>
+<div><label for="perImage">Default seconds per photo</label><input id="perImage" type="number" min="1" max="30" value="4"></div>
+<div><label for="ratio">Video format</label><select id="ratio"><option value="portrait">9:16 · Shorts / Reels</option><option value="landscape">16:9 · YouTube</option><option value="square">1:1 · Square</option></select></div>
+</div>
+<div style="margin-top:12px"><label for="media">Select photos and video clips from your phone</label><input id="media" type="file" accept="image/*,video/*" multiple><p class="hint">Choose a few small files for the first test. Media is processed in this browser tab.</p></div>
+<div id="mediaList"><p class="hint">No media selected yet.</p></div>
+</section>
+<section class="card">
+<h2>2 · Text and watermark</h2>
+<div id="layers"></div>
+<div class="layer"><div class="layerTitle">Watermark</div><div class="grid2"><div><label for="watermark">Watermark text</label><input id="watermark" type="text" placeholder="e.g. Divine Blessings"></div><div><label for="wmColor">Watermark colour</label><input id="wmColor" type="color" value="#ffffff"></div></div></div>
+</section>
+<section class="card wide">
+<h2>3 · Music</h2>
+<label for="music">Choose an audio file</label><input id="music" type="file" accept="audio/*">
+<div class="grid3" style="margin-top:10px"><div><label for="musicStart">Start (seconds)</label><input id="musicStart" type="number" min="0" value="0"></div><div><label for="musicEnd">End (seconds)</label><input id="musicEnd" type="number" min="0" value="30"></div><div><label for="volume">Volume (%)</label><input id="volume" type="number" min="0" max="100" value="75"></div></div>
+<p class="hint">Use music you own or have permission to use. The music is mixed locally during recording.</p>
+</section>
+<section class="card previewCard wide">
+<h2>4 · Preview and export</h2>
+<div class="previewWrap"><div><canvas id="canvas" width="360" height="640"></canvas><p class="hint" style="text-align:center">Preview canvas · 9:16 by default</p></div><div><div class="actions"><button id="previewBtn" class="secondary">▶ Preview</button><button id="exportBtn">Export video</button></div><div style="margin-top:12px"><button id="saveBtn" class="secondary" style="width:100%">Save settings on this device</button></div><div style="margin-top:12px" id="status">Ready. Select media to begin.</div><p class="hint">Prototype export is WebM, a browser-supported video format. MP4 export and advanced transitions are planned for the next stage.</p></div></div>
+</section>
+</main>
+<footer>Divine Video Studio · Step 1 prototype · Your selected media is not uploaded by this page.</footer>
+<script>
+const $=id=>document.getElementById(id);
+const canvas=$('canvas'),ctx=canvas.getContext('2d');
+let items=[], urls=[], raf=0, playing=false, audioCtx=null;
+const layerDefs=[
+ {id:'top',title:'Top text',pos:'top'},
+ {id:'middle',title:'Middle text',pos:'middle'},
+ {id:'bottom',title:'Bottom text',pos:'bottom'}
+];
+function makeLayers(){
+ $('layers').innerHTML='';
+ layerDefs.forEach(d=>{
+  const el=document.createElement('div');el.className='layer';
+  el.innerHTML=`<div class="layerTitle">${d.title}</div>
+  <div class="grid2"><div><label>Text</label><input id="${d.id}Text" type="text" placeholder="${d.title} (optional)"></div>
+  <div><label>Text colour</label><input id="${d.id}Color" type="color" value="#ffffff"></div>
+  <div><label>Background colour</label><input id="${d.id}Bg" type="color" value="#241b30"></div>
+  <div><label>Background</label><select id="${d.id}BgOn"><option value="yes">Show background</option><option value="no">Transparent</option></select></div>
+  <div><label>Show from (sec)</label><input id="${d.id}Start" type="number" min="0" value="0"></div>
+  <div><label>Show until (sec)</label><input id="${d.id}End" type="number" min="0" value="30"></div></div>`;
+  $('layers').appendChild(el);
+ });
+}
+makeLayers();
+function setCanvasRatio(){
+ const r=$('ratio').value;
+ if(r==='landscape'){canvas.width=640;canvas.height=360}
+ else if(r==='square'){canvas.width=480;canvas.height=480}
+ else {canvas.width=360;canvas.height=640}
+ drawFrame(0);
+}
+$('ratio').addEventListener('change',setCanvasRatio);
+function status(s){$('status').textContent=s}
+function cleanupUrls(){urls.forEach(URL.revokeObjectURL);urls=[]}
+$('media').addEventListener('change',()=>{
+ cleanupUrls();items=[];
+ [...$('media').files].forEach((file,i)=>{
+  const url=URL.createObjectURL(file);urls.push(url);
+  const item={file,url,name:file.name,type:file.type.startsWith('image/')?'image':'video',duration:Number($('perImage').value)||4,el:null};
+  items.push(item);
+ });
+ renderList();loadItemElements().then(()=>{drawFrame(0);status(items.length+' media item(s) ready.');});
+});
+function renderList(){
+ const list=$('mediaList');list.innerHTML='';
+ if(!items.length){list.innerHTML='<p class="hint">No media selected yet.</p>';return}
+ items.forEach((it,i)=>{
+  const row=document.createElement('div');row.className='mediaItem';
+  row.innerHTML=`<span>${i+1}. ${escapeHtml(it.name)}</span><button class="secondary" data-up="${i}" aria-label="Move up">↑</button><button class="secondary" data-down="${i}" aria-label="Move down">↓</button><button class="secondary" data-remove="${i}" aria-label="Remove">×</button>`;
+  list.appendChild(row);
+ });
+ list.querySelectorAll('[data-up]').forEach(b=>b.onclick=()=>moveItem(+b.dataset.up,-1));
+ list.querySelectorAll('[data-down]').forEach(b=>b.onclick=()=>moveItem(+b.dataset.down,1));
+ list.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{items.splice(+b.dataset.remove,1);renderList();drawFrame(0)});
+}
+function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function moveItem(i,d){const j=i+d;if(j<0||j>=items.length)return;[items[i],items[j]]=[items[j],items[i]];renderList();drawFrame(0)}
+async function loadItemElements(){
+ for(const it of items){
+  if(it.el)continue;
+  if(it.type==='image'){
+   const img=new Image();img.src=it.url;await new Promise((res,rej)=>{img.onload=res;img.onerror=rej});it.el=img;
+  }else{
+   const v=document.createElement('video');v.src=it.url;v.muted=true;v.playsInline=true;v.preload='auto';
+   await new Promise(res=>{v.onloadedmetadata=()=>{it.duration=Math.max(1,v.duration||4);res()};v.onerror=()=>{it.duration=4;res()};});
+   it.el=v;
+  }
+ }
+}
+function totalTimeline(){return items.reduce((n,it)=>n+(it.type==='image'?(Number($('perImage').value)||4):Math.max(1,it.duration||4)),0)}
+function getItemAt(t){
+ let start=0;
+ for(let i=0;i<items.length;i++){const it=items[i],dur=it.type==='image'?(Number($('perImage').value)||4):Math.max(1,it.duration||4);if(t<start+dur||i===items.length-1)return {it,local:Math.max(0,t-start),start,dur,index:i};start+=dur}
+ return null
+}
+function drawCover(source){
+ const sw=source.videoWidth||source.naturalWidth||canvas.width,sh=source.videoHeight||source.naturalHeight||canvas.height;
+ if(!sw||!sh)return;
+ const scale=Math.max(canvas.width/sw,canvas.height/sh),w=sw*scale,h=sh*scale;
+ ctx.drawImage(source,(canvas.width-w)/2,(canvas.height-h)/2,w,h);
+}
+function textLayer(id,t,y){
+ const text=$(id+'Text').value.trim(),start=Number($(id+'Start').value)||0,end=Number($(id+'End').value)||0;
+ if(!text||t<start||t>end)return;
+ const size=Math.max(18,Math.round(canvas.width*.055));ctx.font=`bold ${size}px system-ui, sans-serif`;
+ const maxW=canvas.width*.88;let lines=[],words=text.split(/\s+/),line='';
+ for(const word of words){const test=line?line+' '+word:word;if(ctx.measureText(test).width>maxW&&line){lines.push(line);line=word}else line=test}
+ if(line)lines.push(line);
+ const lineH=size*1.25,pad=10,totalH=lines.length*lineH+pad*2;
+ let cy=y==='top'?canvas.height*.12:y==='middle'?canvas.height*.5:canvas.height*.86;
+ if($ (id+'BgOn').value==='yes'){ctx.fillStyle=$(id+'Bg').value;const maxLine=Math.max(...lines.map(l=>ctx.measureText(l).width));ctx.fillRect((canvas.width-maxLine-pad*2)/2,cy-totalH/2,maxLine+pad*2,totalH)}
+ ctx.fillStyle=$(id+'Color').value;ctx.textAlign='center';ctx.textBaseline='middle';
+ lines.forEach((l,i)=>ctx.fillText(l,canvas.width/2,cy-(lines.length-1)*lineH/2+i*lineH,maxW));
+}
+function drawFrame(t){
+ ctx.fillStyle='#08070c';ctx.fillRect(0,0,canvas.width,canvas.height);
+ const current=getItemAt(t);
+ if(current&&current.it.el){
+  try{if(current.it.type==='image')drawCover(current.it.el);else{if(Math.abs(current.it.el.currentTime-current.local)>.25)current.it.el.currentTime=Math.min(current.local,current.it.el.duration||current.local);drawCover(current.it.el)}}catch(e){}
+ }else{
+  const g=ctx.createLinearGradient(0,0,canvas.width,canvas.height);g.addColorStop(0,'#2c1c3d');g.addColorStop(1,'#090810');ctx.fillStyle=g;ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='#f2c879';ctx.textAlign='center';ctx.font=`bold ${canvas.width*.07}px system-ui`;ctx.fillText($('god').value,canvas.width/2,canvas.height*.45,canvas.width*.86);
+  ctx.font=`${canvas.width*.04}px system-ui`;ctx.fillText('Add photos or clips to begin',canvas.width/2,canvas.height*.54,canvas.width*.86);
+ }
+ textLayer('top',t,'top');textLayer('middle',t,'middle');textLayer('bottom',t,'bottom');
+ const wm=$('watermark').value.trim();if(wm){ctx.font=`bold ${Math.max(12,canvas.width*.03)}px system-ui`;ctx.textAlign='right';ctx.textBaseline='bottom';ctx.fillStyle=$('wmColor').value;ctx.globalAlpha=.8;ctx.fillText(wm,canvas.width-12,canvas.height-12,canvas.width*.65);ctx.globalAlpha=1}
+}
+function previewRun(){
+ if(!items.length){status('Choose photos or clips first.');return}
+ cancelAnimationFrame(raf);playing=true;const start=performance.now(),dur=Math.max(3,Number($('length').value)||30);
+ const tick=now=>{if(!playing)return;let t=((now-start)/1000)%dur;drawFrame(t);raf=requestAnimationFrame(tick)};
+ raf=requestAnimationFrame(tick);status('Preview playing. Tap Preview again to stop.');
+}
+$('previewBtn').onclick=()=>{if(playing){playing=false;cancelAnimationFrame(raf);drawFrame(0);status('Preview stopped.')}else previewRun()};
+function wait(ms){return new Promise(r=>setTimeout(r,ms))}
+async function exportVideo(){
+ if(!items.length){status('Choose photos or clips first.');return}
+ if(!window.MediaRecorder||!canvas.captureStream){status('This browser does not support local recording. Try the latest Chrome.');return}
+ playing=false;cancelAnimationFrame(raf);$('exportBtn').disabled=true;
+ let stream=null,recorder=null,chunks=[];
+ try{
+  await loadItemElements();
+  const target=Math.max(3,Math.min(180,Number($('length').value)||30));
+  const canvasStream=canvas.captureStream(24);
+  let audioDest=null,sourceNode=null,audioEl=null;
+  const musicFile=$('music').files[0];
+  if(musicFile){
+   audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+   await audioCtx.resume();
+   audioDest=audioCtx.createMediaStreamDestination();
+   audioEl=new Audio(URL.createObjectURL(musicFile));audioEl.loop=false;
+   sourceNode=audioCtx.createMediaElementSource(audioEl);
+   const gain=audioCtx.createGain();gain.gain.value=Math.max(0,Math.min(100,Number($('volume').value)||75))/100;
+   sourceNode.connect(gain);gain.connect(audioDest);gain.connect(audioCtx.destination);
+   const start=Math.max(0,Number($('musicStart').value)||0),end=Number($('musicEnd').value)||target;
+   audioEl.currentTime=start;
+   audioEl.addEventListener('timeupdate',()=>{if(end>start&&audioEl.currentTime>=end)audioEl.pause()});
+   await audioEl.play();
+  }
+  stream=new MediaStream([...canvasStream.getVideoTracks(),...(audioDest?audioDest.stream.getAudioTracks():[])]);
+  const mime=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(t=>MediaRecorder.isTypeSupported(t))||'';
+  recorder=new MediaRecorder(stream,mime?{mimeType:mime}:undefined);
+  recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+  const done=new Promise(resolve=>recorder.onstop=resolve);
+  recorder.start(500);
+  status('Exporting locally… keep this tab open and screen awake.');
+  const startAt=performance.now();
+  while((performance.now()-startAt)/1000<target){
+   const t=(performance.now()-startAt)/1000;
+   drawFrame(t);
+   const current=getItemAt(t);
+   if(current&&current.it.type==='video'&&current.it.el){
+    const v=current.it.el;
+    if(v.paused){try{v.currentTime=current.local;await v.play()}catch(e){}}
+    else if(Math.abs(v.currentTime-current.local)>.7){try{v.currentTime=current.local}catch(e){}}
+   }
+   await wait(1000/24);
+  }
+  recorder.stop();await done;
+  if(audioEl)audioEl.pause();
+  const blob=new Blob(chunks,{type:recorder.mimeType||'video/webm'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='divine-video-studio.webm';document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+  status('Export finished. Saved/downloaded a WebM video. MP4 export is the next milestone.');
+ }catch(err){console.error(err);status('Export failed: '+(err&&err.message?err.message:String(err))+'\nTry fewer/smaller files, and use Chrome.')}
+ finally{if(stream)stream.getTracks().forEach(t=>t.stop());if(audioCtx){try{await audioCtx.close()}catch(e){}}$('exportBtn').disabled=false;drawFrame(0)}
+}
+$('exportBtn').onclick=exportVideo;
+$('saveBtn').onclick=()=>{
+ const settings={god:$('god').value,length:$('length').value,perImage:$('perImage').value,ratio:$('ratio').value,watermark:$('watermark').value,wmColor:$('wmColor').value,layers:{}};
+ layerDefs.forEach(d=>{settings.layers[d.id]={text:$(d.id+'Text').value,color:$(d.id+'Color').value,bg:$(d.id+'Bg').value,bgOn:$(d.id+'BgOn').value,start:$(d.id+'Start').value,end:$(d.id+'End').value}});
+ localStorage.setItem('divineVideoStudioSettings',JSON.stringify(settings));status('Settings saved on this device. Media files must be selected again next time.');
+};
+function loadSettings(){
+ try{const s=JSON.parse(localStorage.getItem('divineVideoStudioSettings')||'null');if(!s)return;
+  ['god','length','perImage','ratio','watermark','wmColor'].forEach(k=>{if(s[k]!==undefined)$(k).value=s[k]});
+  if(s.layers)layerDefs.forEach(d=>{const x=s.layers[d.id];if(!x)return;$(d.id+'Text').value=x.text||'';$(d.id+'Color').value=x.color||'#ffffff';$(d.id+'Bg').value=x.bg||'#241b30';$(d.id+'BgOn').value=x.bgOn||'yes';$(d.id+'Start').value=x.start||0;$(d.id+'End').value=x.end||30});
+ }catch(e){}
+}
+['god','length','perImage','watermark','wmColor'].forEach(id=>$(id).addEventListener('input',()=>drawFrame(0)));
+loadSettings();drawFrame(0);
+</script>
+</body>
+</html>
