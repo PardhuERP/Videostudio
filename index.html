@@ -509,19 +509,22 @@ const wait = ms => new Promise(resolve => setTimeout(resolve,ms));
 let ffmpegInstance = null;
 let ffmpegLoading = null;
 
+
 async function getFFmpeg() {
   if (ffmpegInstance) return ffmpegInstance;
 
   if (!ffmpegLoading) {
     ffmpegLoading = (async () => {
-      status('Loading MP4 engine… first load is about 31 MB.');
+      status('Loading MP4 engine…');
 
+      // CHANGE 1: Replace the first import with this
       const { FFmpeg } = await import(
-        'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js'
+        'https://esm.sh/@ffmpeg/ffmpeg@0.12.10?bundle'
       );
 
+      // CHANGE 2: Replace the second import with this
       const { toBlobURL } = await import(
-        'https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.2/dist/esm/index.js'
+        'https://esm.sh/@ffmpeg/util@0.12.2?bundle'
       );
 
       const ffmpeg = new FFmpeg();
@@ -532,8 +535,9 @@ async function getFFmpeg() {
         }
       });
 
+      // CHANGE 3: Replace your existing baseURL with this
       const baseURL =
-        'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd';
+        'https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd';
 
       await ffmpeg.load({
         coreURL: await toBlobURL(
@@ -559,6 +563,8 @@ async function getFFmpeg() {
   }
 }
 
+
+ 
 function downloadVideo(blob, filename) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
