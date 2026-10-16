@@ -510,6 +510,7 @@ let ffmpegInstance = null;
 let ffmpegLoading = null;
 
 
+
 async function getFFmpeg() {
   if (ffmpegInstance) return ffmpegInstance;
 
@@ -517,14 +518,12 @@ async function getFFmpeg() {
     ffmpegLoading = (async () => {
       status('Loading MP4 engine…');
 
-      // CHANGE 1: Replace the first import with this
       const { FFmpeg } = await import(
-        'https://esm.sh/@ffmpeg/ffmpeg@0.12.10?bundle'
+        'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js'
       );
 
-      // CHANGE 2: Replace the second import with this
       const { toBlobURL } = await import(
-        'https://esm.sh/@ffmpeg/util@0.12.2?bundle'
+        'https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.2/dist/esm/index.js'
       );
 
       const ffmpeg = new FFmpeg();
@@ -535,19 +534,26 @@ async function getFFmpeg() {
         }
       });
 
-      // CHANGE 3: Replace your existing baseURL with this
       const baseURL =
-        'https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd';
+        'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd';
+
+      const coreURL = await toBlobURL(
+        `${baseURL}/ffmpeg-core.js`,
+        'text/javascript'
+      );
+
+      const wasmURL = await toBlobURL(
+        `${baseURL}/ffmpeg-core.wasm`,
+        'application/wasm'
+      );
+
+      const classWorkerURL =
+        'https://pardhuerp.github.io/Videostudio/ffmpeg/worker.js';
 
       await ffmpeg.load({
-        coreURL: await toBlobURL(
-          `${baseURL}/ffmpeg-core.js`,
-          'text/javascript'
-        ),
-        wasmURL: await toBlobURL(
-          `${baseURL}/ffmpeg-core.wasm`,
-          'application/wasm'
-        )
+        classWorkerURL,
+        coreURL,
+        wasmURL
       });
 
       ffmpegInstance = ffmpeg;
@@ -562,6 +568,7 @@ async function getFFmpeg() {
     throw error;
   }
 }
+
 
 
  
