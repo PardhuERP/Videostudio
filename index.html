@@ -487,14 +487,7 @@ const progress = Math.max(
   )
 );
 
-    ctx.save();
-
-    if (transition === 'fade') {
-  ctx.globalAlpha =
-    current.index === 0
-      ? 1
-      : progress;
-} else if (transition === 'slide') {
+     else if (transition === 'slide') {
       ctx.translate(
         (1 - progress) * canvas.width,
         0
