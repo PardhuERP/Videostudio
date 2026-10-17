@@ -381,6 +381,28 @@ function drawCover(source){
 }
 
  
+function getMediaSource(item, time) {
+  if (!item || !item.it || !item.it.el) return null;
+
+  const source = item.it.el;
+
+  if (item.it.type === 'video') {
+    if (source.readyState < 2) return null;
+
+    const localTime = Math.max(0, time - item.start);
+
+    if (Math.abs(source.currentTime - localTime) > 0.25) {
+      source.currentTime = Math.min(
+        localTime,
+        source.duration || localTime
+      );
+    }
+  }
+
+  return source;
+}
+
+ 
 function drawMediaAt(time) {
   const item = getItemAt(Math.max(0, time));
   if (!item || !item.it.el) return false;
