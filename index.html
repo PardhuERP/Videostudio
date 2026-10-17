@@ -511,19 +511,20 @@ function drawFrame(t) {
     current.local < transitionDuration;
 
   // Draw the previous photo underneath the incoming photo.
-  if (isDissolve && timeLeft >= 0) {
-    const previous = getItemAt(Math.max(0, current.start - 0.001));
+  // Clear canvas, then draw the previous photo as the background.
+ctx.fillStyle = '#08070c';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    if (previous && previous.it.el) {
-      ctx.save();
-      ctx.globalAlpha = 1;
-      drawCover(previous.it.el);
-      ctx.restore();
-    }
-  } else {
-    ctx.fillStyle = '#08070c';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+if (isDissolve && current.index > 0) {
+  const previous = getItemAt(current.start - 0.001);
+
+  if (previous && previous.it.el) {
+    ctx.save();
+    ctx.globalAlpha = 1;
+    drawCover(previous.it.el);
+    ctx.restore();
   }
+}
 
   let source = current.it.el;
 
