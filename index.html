@@ -380,6 +380,26 @@ function drawCover(source){
   ctx.drawImage(source,(canvas.width-w)/2,(canvas.height-h)/2,w,h);
 }
 
+ 
+function drawMediaAt(time) {
+  const item = getItemAt(Math.max(0, time));
+  if (!item || !item.it.el) return false;
+
+  const source = item.it.el;
+
+  if (item.it.type === 'video') {
+    const video = source;
+    if (video.readyState < 2) return false;
+
+    drawCover(video);
+  } else {
+    drawCover(source);
+  }
+
+  return true;
+}
+
+
 function textLayer(id,t,position){
   const text = $(id+'Text').value.trim();
   const start = Number($(id+'Start').value) || 0;
