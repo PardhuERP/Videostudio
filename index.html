@@ -440,8 +440,7 @@ function textLayer(id,t,position){
 
 function drawFrame(t){
   ctx.fillStyle = '#08070c';
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
   
 const current = getItemAt(t);
 
@@ -490,10 +489,7 @@ const progress = Math.max(
     ctx.save();
 
     if (transition === 'fade') {
-  ctx.globalAlpha =
-    current.index === 0
-      ? 1
-      : progress;
+  ctx.globalAlpha = 1;
 } else if (transition === 'slide') {
       ctx.translate(
         (1 - progress) * canvas.width,
