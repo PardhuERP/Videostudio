@@ -520,33 +520,6 @@ const progress = Math.max(
     ctx.restore();
   }
 } else {
-  const gradient = ctx.createLinearGradient(
-    0, 0, canvas.width, canvas.height
-  );
-
-  gradient.addColorStop(0, '#2c1c3d');
-  gradient.addColorStop(1, '#090810');
-
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  ctx.fillStyle = '#f2c879';
-  ctx.textAlign = 'center';
-  ctx.font = `bold ${canvas.width * 0.07}px system-ui`;
-  ctx.fillText(
-    $('god').value,
-    canvas.width / 2,
-    canvas.height * 0.45,
-    canvas.width * 0.86
-  );
-
-  ctx.font = `${canvas.width * 0.04}px system-ui`;
-  ctx.fillText(
-    'Add photos or clips to begin',
-    canvas.width / 2,
-    canvas.height * 0.54,
-    canvas.width * 0.86
-  );
 }
 
 
