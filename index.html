@@ -480,102 +480,130 @@ function textLayer(id,t,position){
   });
 }
 
-function drawFrame(t){
-  ctx.fillStyle = '#08070c';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
-const current = getItemAt(t);
 
-if (current && current.it.el) {
-  try {
-    let source = current.it.el;
+function drawFrame(t) {
+  const current = getItemAt(t);
 
-    if (current.it.type === 'video') {
-      const v = current.it.el;
-
-      if (Math.abs(v.currentTime - current.local) > 0.25) {
-        v.currentTime = Math.min(
-          current.local,
-          v.duration || current.local
-        );
-      }
-
-      source = v;
-    }
-
-    const transition = $('transition')
-      ? $('transition').value
-      : 'none';
-
-    const transitionDuration = Math.max(
-      0.2,
-      Math.min(
-        1.5,
-        Number($('transitionDuration')?.value) || 0.6
-      )
-    );
-
-    const transitionStart = Math.max(
-  0,
-  current.duration - transitionDuration
-);
-
-const progress = Math.max(
-  0,
-  Math.min(
-    1,
-    (current.local - transitionStart) / transitionDuration
-  )
-);
-
-    ctx.save();
-
-    if (transition === 'fade') {
-  ctx.globalAlpha = 1;
-} else if (transition === 'slide') {
-      ctx.translate(
-        (1 - progress) * canvas.width,
-        0
-      );
-    } else if (transition === 'zoom') {
-      const scale = 1.18 - 0.18 * progress;
-
-      ctx.translate(
-        canvas.width / 2,
-        canvas.height / 2
-      );
-      ctx.scale(scale, scale);
-      ctx.translate(
-        -canvas.width / 2,
-        -canvas.height / 2
-      );
-    }
-
-    drawCover(source);
-    ctx.restore();
-
-  } catch (e) {
-    ctx.restore();
+  // Keep the last photo visible if no new item is available.
+  if (!current || !current.it || !current.it.el) {
+    textLayer('top', t, 'top');
+    textLayer('middle', t, 'middle');
+    textLayer('bottom', t, 'bottom');
+    return;
   }
-} else {
-}
 
+  const transition = $('transition')
+    ? $('transition').value
+    : 'none';
 
-  textLayer('top',t,'top');
-  textLayer('middle',t,'middle');
-  textLayer('bottom',t,'bottom');
+  const transitionDuration = Math.max(
+    0.2,
+    Math.min(
+      1.5,
+      Number($('transitionDuration')?.value) || 0.6
+    )
+  );
+
+  const timeLeft = current.duration - current.local;
+  const isDissolve =
+    transition === 'fade' &&
+    current.index > 0 &&
+    current.local < transitionDuration;
+
+  // Draw the previous photo underneath the incoming photo.
+  if (isDissolve && timeLeft >= 0) {
+    const previous = getItemAt(Math.max(0, current.start - 0.001));
+
+    if (previous && previous.it.el) {
+      ctx.save();
+      ctx.globalAlpha = 1;
+      drawCover(previous.it.el);
+      ctx.restore();
+    }
+  } else {
+    ctx.fillStyle = '#08070c';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  let source = current.it.el;
+
+  if (current.it.type === 'video') {
+    const video = current.it.el;
+
+    if (video.readyState >= 2) {
+      if (Math.abs(video.currentTime - current.local) > 0.25) {
+        try {
+          video.currentTime = Math.min(
+            current.local,
+            video.duration || current.local
+          );
+        } catch (e) {}
+      }
+      source = video;
+    }
+  }
+
+  ctx.save();
+
+  if (transition === 'fade' && current.index > 0) {
+    const progress = Math.max(
+      0,
+      Math.min(1, current.local / transitionDuration)
+    );
+    ctx.globalAlpha = progress;
+  } else if (
+    transition === 'slide' &&
+    current.local < transitionDuration
+  ) {
+    const progress = Math.min(
+      1,
+      current.local / transitionDuration
+    );
+    ctx.translate((1 - progress) * canvas.width, 0);
+  } else if (
+    transition === 'zoom' &&
+    current.local < transitionDuration
+  ) {
+    const progress = Math.min(
+      1,
+      current.local / transitionDuration
+    );
+    const scale = 1.18 - 0.18 * progress;
+
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.scale(scale, scale);
+    ctx.translate(-canvas.width / 2, -canvas.height / 2);
+  }
+
+  if (source.readyState === undefined || source.readyState >= 2) {
+    drawCover(source);
+  }
+
+  ctx.restore();
+
+  textLayer('top', t, 'top');
+  textLayer('middle', t, 'middle');
+  textLayer('bottom', t, 'bottom');
 
   const watermark = $('watermark').value.trim();
-  if(watermark){
-    ctx.font = `bold ${Math.max(12,canvas.width*0.03)}px system-ui`;
+
+  if (watermark) {
+    ctx.font = `bold ${Math.max(12, canvas.width * 0.03)}px system-ui`;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'bottom';
     ctx.fillStyle = $('wmColor').value;
     ctx.globalAlpha = 0.8;
-    ctx.fillText(watermark,canvas.width-12,canvas.height-12,canvas.width*0.65);
+    ctx.fillText(
+      watermark,
+      canvas.width - 12,
+      canvas.height - 12,
+      canvas.width * 0.65
+    );
     ctx.globalAlpha = 1;
   }
 }
+
+
 
 function previewRun(){
   if(!items.length){
