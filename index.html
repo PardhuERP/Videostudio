@@ -272,6 +272,9 @@ const PIXABAY_WORKER =
   'https://divine-image-api.chopparapardhu.workers.dev/';
 
 let pixabayHits = [];
+let pixabayPage = 0;
+let pixabayQuery = '';
+let pixabayLoading = false;
 const selectedImageIds = new Set();
 
 function getSuggestedImageQuery() {
@@ -357,6 +360,7 @@ function updateImageSearchInfo() {
     ' seconds per photo, you need about ' + required + ' photos.';
 }
 
+
 $('searchImagesBtn').addEventListener('click', async () => {
   const query = $('imageQuery').value.trim();
 
@@ -365,18 +369,34 @@ $('searchImagesBtn').addEventListener('click', async () => {
     return;
   }
 
-  const length = Math.max(3, Number($('length').value) || 30);
-  const seconds = Math.max(1, Number($('perImage').value) || 2);
-  const count = 30;
+  pixabayHits = [];
+  selectedImageIds.clear();
+  pixabayPage = 0;
+  pixabayQuery = query;
 
-  const button = $('searchImagesBtn');
-  button.disabled = true;
-  $('imageSearchInfo').textContent = 'Searching Pixabay…';
+  renderImageResults();
+  await loadPixabayPage(1, true);
+});
+
+async function loadPixabayPage(page, isNewSearch = false) {
+  if (pixabayLoading) return;
+
+  pixabayLoading = true;
+
+  const searchButton = $('searchImagesBtn');
+  const moreButton = $('loadMoreImagesBtn');
+
+  searchButton.disabled = true;
+  moreButton.disabled = true;
+
+  $('imageSearchInfo').textContent =
+    page === 1 ? 'Searching Pixabay…' : 'Loading more images…';
 
   try {
     const url = new URL(PIXABAY_WORKER);
-    url.searchParams.set('q', query);
-    url.searchParams.set('per_page', String(count));
+    url.searchParams.set('q', pixabayQuery);
+    url.searchParams.set('per_page', '30');
+    url.searchParams.set('page', String(page));
 
     const response = await fetch(url.toString());
     const data = await response.json();
@@ -387,50 +407,85 @@ $('searchImagesBtn').addEventListener('click', async () => {
       );
     }
 
-    
-pixabayHits = Array.isArray(data.hits) ? data.hits : [];
-selectedImageIds.clear();
- const requiredPhotos = Math.ceil(
-  Math.max(3, Number($('length').value) || 30) /
-  Math.max(1, Number($('perImage').value) || 2)
-);
+    const results = Array.isArray(data.hits) ? data.hits : [];
 
-pixabayHits
-  .slice(0, requiredPhotos)
-  .forEach(photo => selectedImageIds.add(photo.id));
+    const existingIds = new Set(
+      pixabayHits.map(photo => photo.id)
+    );
 
-renderImageResults();
+    const uniqueResults = results.filter(
+      photo => !existingIds.has(photo.id)
+    );
 
+    pixabayHits.push(...uniqueResults);
+    pixabayPage = page;
 
-if (pixabayHits.length < requiredPhotos) {
-  $('imageSearchInfo').textContent +=
-    ' Only ' + pixabayHits.length +
-    ' images were found; search for more to fill the video.';
-} else {
-  status(
-    'Automatically selected ' + requiredPhotos +
-    ' photos. You can change the selection before adding them.'
-  );
-}
+    if (isNewSearch) {
+      const videoLength = Math.max(
+        3,
+        Number($('length').value) || 30
+      );
 
+      const secondsPerPhoto = Math.max(
+        1,
+        Number($('perImage').value) || 2
+      );
+
+      const requiredPhotos = Math.ceil(
+        videoLength / secondsPerPhoto
+      );
+
+      pixabayHits
+        .slice(0, requiredPhotos)
+        .forEach(photo => selectedImageIds.add(photo.id));
+    }
+
+    renderImageResults();
 
     if (!pixabayHits.length) {
       $('imageSearchInfo').textContent =
-        'No images found. Try a simpler search term.';
+        'No images found. Try another search term.';
     } else {
-      status('Found ' + pixabayHits.length + ' Pixabay images.');
+      updateImageSearchInfo();
+
+      status(
+        'Loaded ' + pixabayHits.length +
+        ' images. ' + selectedImageIds.size +
+        ' selected. You can select more or remove unwanted photos.'
+      );
     }
+
+    if (results.length === 0) {
+      moreButton.disabled = true;
+      moreButton.textContent = 'No More Images';
+    } else {
+      moreButton.disabled = false;
+      moreButton.textContent = 'Load More Images';
+    }
+
   } catch (error) {
     $('imageSearchInfo').textContent =
       'Search failed: ' + (error.message || String(error));
 
-    status(
-      'Could not search images. Check your connection and Worker.'
-    );
+    status('Could not load images. Check your connection and Worker.');
   } finally {
-    button.disabled = false;
+    pixabayLoading = false;
+    searchButton.disabled = false;
+    if (pixabayHits.length > 0) {
+      moreButton.disabled = false;
+    }
   }
+}
+
+$('loadMoreImagesBtn').addEventListener('click', async () => {
+  if (!pixabayQuery) {
+    status('Search for a deity first.');
+    return;
+  }
+
+  await loadPixabayPage(pixabayPage + 1, false);
 });
+
 
 $('selectImagesBtn').addEventListener('click', () => {
   const allSelected =
