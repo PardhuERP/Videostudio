@@ -212,26 +212,52 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:8px 20px 24px
   </div>
 </section>
 
+
 <section class="card wide">
   <h2>3 · Music</h2>
+
   <label for="music">Choose an audio file</label>
   <input id="music" type="file" accept="audio/*">
+
+  <p class="hint" id="musicInfo">
+    Select a song to see its duration.
+  </p>
+
   <div class="grid3" style="margin-top:10px">
     <div>
-      <label for="musicStart">Start (sec)</label>
-      <input id="musicStart" type="number" min="0" value="0">
+      <label for="musicStart">Trim start (sec)</label>
+      <input id="musicStart" type="number" min="0" step="0.1" value="0">
     </div>
     <div>
-      <label for="musicEnd">End (sec)</label>
-      <input id="musicEnd" type="number" min="0" value="30">
+      <label for="musicEnd">Trim end (sec)</label>
+      <input id="musicEnd" type="number" min="0" step="0.1" value="30">
     </div>
     <div>
       <label for="volume">Volume (%)</label>
-      <input id="volume" type="number" min="0" max="100" value="75">
+      <input id="volume" type="number" min="0" max="100" step="1" value="75">
     </div>
   </div>
-  <p class="hint">Use music you own or have permission to use.</p>
+
+  <div class="actions" style="margin-top:12px">
+    <button id="musicPreviewBtn" type="button" class="secondary">
+      ▶ Preview music
+    </button>
+    <button id="musicStopBtn" type="button" class="secondary">
+      ■ Stop music
+    </button>
+    <button id="musicRemoveBtn" type="button" class="secondary">
+      Remove music
+    </button>
+  </div>
+
+  <p class="hint">
+    Preview plays only the selected start-to-end section.
+    Volume 0% means mute. Music is mixed into the exported video.
+    Use music you own or have permission to use.
+  </p>
 </section>
+
+
 
 <section class="card previewCard wide">
   <h2>4 · Preview and export</h2>
@@ -1209,14 +1235,23 @@ async function exportVideo(){
 
       const source = audioCtx.createMediaElementSource(audioEl);
       const gain = audioCtx.createGain();
-      gain.gain.value = Math.max(0,Math.min(100,Number($('volume').value)||75))/100;
+      const musicSettings = getMusicSettings();
+      gain.gain.value = musicSettings.volume / 100;
 
       source.connect(gain);
       gain.connect(audioDest);
       gain.connect(audioCtx.destination);
 
-      const start = Math.max(0,Number($('musicStart').value)||0);
-      const end = Number($('musicEnd').value)||target;
+      const start = musicSettings.start;
+const end = Math.min(musicSettings.end, audioEl.duration);
+
+if (start >= audioEl.duration) {
+  throw new Error('Music start is beyond the song duration.');
+}
+
+if (end <= start) {
+  throw new Error('Music end must be greater than music start.');
+}
 
       await new Promise(resolve => {
         audioEl.addEventListener('loadedmetadata',resolve,{once:true});
@@ -1304,6 +1339,162 @@ await convertToMP4(blob);
     drawFrame(0);
   }
 }
+
+ 
+let musicPreviewAudio = null;
+let musicPreviewUrl = null;
+
+function stopMusicPreview() {
+  if (musicPreviewAudio) {
+    musicPreviewAudio.pause();
+    musicPreviewAudio.currentTime = 0;
+  }
+  $('musicPreviewBtn').textContent = '▶ Preview music';
+}
+
+function getMusicSettings() {
+  const start = Number($('musicStart').value);
+  const end = Number($('musicEnd').value);
+  const volume = Number($('volume').value);
+
+  if (!Number.isFinite(start) || start < 0) {
+    throw new Error('Music start must be 0 or greater.');
+  }
+
+  if (!Number.isFinite(end) || end <= start) {
+    throw new Error('Music end must be greater than music start.');
+  }
+
+  if (!Number.isFinite(volume) || volume < 0 || volume > 100) {
+    throw new Error('Music volume must be between 0 and 100.');
+  }
+
+  return { start, end, volume };
+}
+
+$('music').addEventListener('change', () => {
+  stopMusicPreview();
+
+  if (musicPreviewUrl) {
+    URL.revokeObjectURL(musicPreviewUrl);
+    musicPreviewUrl = null;
+  }
+
+  musicPreviewAudio = null;
+
+  const file = $('music').files[0];
+
+  if (!file) {
+    $('musicInfo').textContent = 'No music selected.';
+    return;
+  }
+
+  musicPreviewUrl = URL.createObjectURL(file);
+  musicPreviewAudio = new Audio(musicPreviewUrl);
+  musicPreviewAudio.preload = 'metadata';
+
+  musicPreviewAudio.addEventListener('loadedmetadata', () => {
+    const duration = musicPreviewAudio.duration;
+
+    $('musicInfo').textContent =
+      'Song duration: ' + duration.toFixed(1) + ' seconds.';
+
+    // If the default end exceeds the song length, adjust it.
+    if (Number($('musicEnd').value) > duration) {
+      $('musicEnd').value = duration.toFixed(1);
+    }
+  });
+
+  musicPreviewAudio.addEventListener('error', () => {
+    $('musicInfo').textContent =
+      'Could not read this audio file. Try another audio file.';
+  });
+});
+
+$('musicPreviewBtn').addEventListener('click', async () => {
+  const file = $('music').files[0];
+
+  if (!file || !musicPreviewAudio) {
+    status('Choose a music file first.');
+    return;
+  }
+
+  try {
+    const settings = getMusicSettings();
+
+    if (musicPreviewAudio.readyState < 1) {
+      await new Promise((resolve, reject) => {
+        musicPreviewAudio.addEventListener('loadedmetadata', resolve, {
+          once: true
+        });
+        musicPreviewAudio.addEventListener('error', reject, {
+          once: true
+        });
+        musicPreviewAudio.load();
+      });
+    }
+
+    if (settings.start >= musicPreviewAudio.duration) {
+      throw new Error('Music start is beyond the song duration.');
+    }
+
+    const end = Math.min(settings.end, musicPreviewAudio.duration);
+
+    if (end <= settings.start) {
+      throw new Error('Choose a valid music trim range.');
+    }
+
+    stopMusicPreview();
+
+    musicPreviewAudio.volume = settings.volume / 100;
+    musicPreviewAudio.currentTime = settings.start;
+
+    musicPreviewAudio.ontimeupdate = () => {
+      if (musicPreviewAudio.currentTime >= end) {
+        stopMusicPreview();
+      }
+    };
+
+    musicPreviewAudio.onended = stopMusicPreview;
+
+    await musicPreviewAudio.play();
+
+    $('musicPreviewBtn').textContent = '▶ Playing…';
+    status('Previewing the selected music section.');
+  } catch (error) {
+    stopMusicPreview();
+    status(error.message || 'Could not preview music.');
+  }
+});
+
+$('musicStopBtn').addEventListener('click', () => {
+  stopMusicPreview();
+  status('Music preview stopped.');
+});
+
+$('musicRemoveBtn').addEventListener('click', () => {
+  stopMusicPreview();
+
+  $('music').value = '';
+  $('musicInfo').textContent = 'No music selected. Video will export without music.';
+
+  if (musicPreviewUrl) {
+    URL.revokeObjectURL(musicPreviewUrl);
+    musicPreviewUrl = null;
+  }
+
+  musicPreviewAudio = null;
+  status('Music removed. The next export will have no music.');
+});
+
+$('volume').addEventListener('input', () => {
+  if (musicPreviewAudio) {
+    const value = Number($('volume').value);
+    if (Number.isFinite(value) && value >= 0 && value <= 100) {
+      musicPreviewAudio.volume = value / 100;
+    }
+  }
+});
 
 $('exportBtn').onclick = exportVideo;
 
