@@ -180,7 +180,13 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:8px 20px 24px
 
   <p class="hint" id="imageSearchInfo">Choose a deity and search for images.</p>
   <div id="imageResults" class="imageResults"></div>
-
+<button id="loadMoreImagesBtn"
+        type="button"
+        class="secondary"
+        style="width:100%;margin-top:10px">
+  Load More Images
+</button>
+ 
   <button id="addImagesBtn" type="button" style="width:100%;margin-top:12px">
     Add Selected Photos to Video
   </button>
@@ -361,7 +367,7 @@ $('searchImagesBtn').addEventListener('click', async () => {
 
   const length = Math.max(3, Number($('length').value) || 30);
   const seconds = Math.max(1, Number($('perImage').value) || 2);
-  const count = Math.min(30, Math.max(3, Math.ceil(length / seconds)));
+  const count = 30;
 
   const button = $('searchImagesBtn');
   button.disabled = true;
@@ -384,6 +390,16 @@ $('searchImagesBtn').addEventListener('click', async () => {
     
 pixabayHits = Array.isArray(data.hits) ? data.hits : [];
 selectedImageIds.clear();
+ const requiredPhotos = Math.ceil(
+  Math.max(3, Number($('length').value) || 30) /
+  Math.max(1, Number($('perImage').value) || 2)
+);
+
+pixabayHits
+  .slice(0, requiredPhotos)
+  .forEach(photo => selectedImageIds.add(photo.id));
+
+renderImageResults();
 
 // Calculate the number of photos needed.
 const requiredPhotos = Math.ceil(
