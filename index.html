@@ -381,10 +381,34 @@ $('searchImagesBtn').addEventListener('click', async () => {
       );
     }
 
-    pixabayHits = Array.isArray(data.hits) ? data.hits : [];
-    selectedImageIds.clear();
+    
+pixabayHits = Array.isArray(data.hits) ? data.hits : [];
+selectedImageIds.clear();
 
-    renderImageResults();
+// Calculate the number of photos needed.
+const requiredPhotos = Math.ceil(
+  Math.max(3, Number($('length').value) || 30) /
+  Math.max(1, Number($('perImage').value) || 2)
+);
+
+// Automatically select enough results, up to the available limit.
+pixabayHits
+  .slice(0, requiredPhotos)
+  .forEach(photo => selectedImageIds.add(photo.id));
+
+renderImageResults();
+
+if (pixabayHits.length < requiredPhotos) {
+  $('imageSearchInfo').textContent +=
+    ' Only ' + pixabayHits.length +
+    ' images were found; search for more to fill the video.';
+} else {
+  status(
+    'Automatically selected ' + requiredPhotos +
+    ' photos. You can change the selection before adding them.'
+  );
+}
+
 
     if (!pixabayHits.length) {
       $('imageSearchInfo').textContent =
