@@ -45,6 +45,57 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:8px 20px 24px
  .previewWrap{grid-template-columns:1fr 1fr;align-items:center}
  canvas{max-height:65vh}
 }
+ 
+.imageResults {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.imageResult {
+  min-width: 0;
+  overflow: hidden;
+  background: #100e1a;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 7px;
+}
+
+.imageResult img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #08070c;
+}
+
+.imageResult label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 8px 0 4px;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.imageResult input[type="checkbox"] {
+  width: 19px;
+  height: 19px;
+  flex-shrink: 0;
+}
+
+.imageResult .hint {
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 600px) {
+  .imageResults {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 </style>
 </head>
 <body>
@@ -114,6 +165,27 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:8px 20px 24px
     <p class="hint">Start with a few small files. Media is processed in this browser tab.</p>
   </div>
   <div id="mediaList"><p class="hint">No media selected yet.</p></div>
+
+<div class="layer" id="onlineImageSearch">
+  <div class="layerTitle">🙏 Search Devotional Images</div>
+  <p class="hint">Search Pixabay, select your favourite images, and add them to your video.</p>
+
+  <label for="imageQuery">Search images</label>
+  <input id="imageQuery" type="text" value="Lord Venkateswara" placeholder="e.g. Lord Shiva">
+
+  <div class="actions" style="margin-top:10px">
+    <button id="searchImagesBtn" type="button">🔍 Search Images</button>
+    <button id="selectImagesBtn" type="button" class="secondary">Select All</button>
+  </div>
+
+  <p class="hint" id="imageSearchInfo">Choose a deity and search for images.</p>
+  <div id="imageResults" class="imageResults"></div>
+
+  <button id="addImagesBtn" type="button" style="width:100%;margin-top:12px">
+    Add Selected Photos to Video
+  </button>
+</div>
+
 </section>
 
 <section class="card">
@@ -189,6 +261,221 @@ let urls = [];
 let raf = 0;
 let playing = false;
 let audioCtx = null;
+
+const PIXABAY_WORKER =
+  'https://divine-image-api.chopparapardhu.workers.dev/';
+
+let pixabayHits = [];
+const selectedImageIds = new Set();
+
+function getSuggestedImageQuery() {
+  const god = $('god').value;
+
+  const queries = {
+    'Lord Venkateswara': 'Lord Venkateswara',
+    'Lord Shiva': 'Lord Shiva',
+    'Lord Ganesha': 'Lord Ganesha',
+    'Lord Hanuman': 'Lord Hanuman',
+    'Goddess Durga': 'Goddess Durga',
+    'Lord Krishna': 'Lord Krishna',
+    'Custom devotional': 'Hindu devotional'
+  };
+
+  return queries[god] || god;
+}
+
+$('god').addEventListener('change', () => {
+  $('imageQuery').value = getSuggestedImageQuery();
+});
+
+function renderImageResults() {
+  const gallery = $('imageResults');
+  gallery.replaceChildren();
+
+  if (!pixabayHits.length) {
+    gallery.innerHTML =
+      '<p class="hint">No images to display. Search for a deity first.</p>';
+    return;
+  }
+
+  pixabayHits.forEach(photo => {
+    const card = document.createElement('div');
+    card.className = 'imageResult';
+
+    const img = document.createElement('img');
+    img.src = photo.previewURL;
+    img.alt = photo.tags || 'Devotional image';
+    img.loading = 'lazy';
+
+    const label = document.createElement('label');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = selectedImageIds.has(photo.id);
+
+    checkbox.addEventListener('change', () => {
+      if (checkbox.checked) {
+        selectedImageIds.add(photo.id);
+      } else {
+        selectedImageIds.delete(photo.id);
+      }
+      updateImageSearchInfo();
+    });
+
+    const caption = document.createElement('span');
+    caption.textContent = photo.tags || 'Image ' + photo.id;
+
+    label.append(checkbox, caption);
+    card.append(img, label);
+
+    const photographer = document.createElement('p');
+    photographer.className = 'hint';
+    photographer.textContent = 'By: ' + (photo.user || 'Pixabay contributor');
+
+    card.appendChild(photographer);
+    gallery.appendChild(card);
+  });
+
+  updateImageSearchInfo();
+}
+
+function updateImageSearchInfo() {
+  const count = selectedImageIds.size;
+  const seconds = Math.max(1, Number($('perImage').value) || 2);
+  const length = Math.max(3, Number($('length').value) || 30);
+  const required = Math.ceil(length / seconds);
+
+  $('imageSearchInfo').textContent =
+    pixabayHits.length + ' images found. ' +
+    count + ' selected. ' +
+    'For ' + length + ' seconds at ' + seconds +
+    ' seconds per photo, you need about ' + required + ' photos.';
+}
+
+$('searchImagesBtn').addEventListener('click', async () => {
+  const query = $('imageQuery').value.trim();
+
+  if (!query) {
+    status('Enter a deity name or image search term.');
+    return;
+  }
+
+  const length = Math.max(3, Number($('length').value) || 30);
+  const seconds = Math.max(1, Number($('perImage').value) || 2);
+  const count = Math.min(30, Math.max(3, Math.ceil(length / seconds)));
+
+  const button = $('searchImagesBtn');
+  button.disabled = true;
+  $('imageSearchInfo').textContent = 'Searching Pixabay…';
+
+  try {
+    const url = new URL(PIXABAY_WORKER);
+    url.searchParams.set('q', query);
+    url.searchParams.set('per_page', String(count));
+
+    const response = await fetch(url.toString());
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.details || data.error || 'Image search failed'
+      );
+    }
+
+    pixabayHits = Array.isArray(data.hits) ? data.hits : [];
+    selectedImageIds.clear();
+
+    renderImageResults();
+
+    if (!pixabayHits.length) {
+      $('imageSearchInfo').textContent =
+        'No images found. Try a simpler search term.';
+    } else {
+      status('Found ' + pixabayHits.length + ' Pixabay images.');
+    }
+  } catch (error) {
+    $('imageSearchInfo').textContent =
+      'Search failed: ' + (error.message || String(error));
+
+    status(
+      'Could not search images. Check your connection and Worker.'
+    );
+  } finally {
+    button.disabled = false;
+  }
+});
+
+$('selectImagesBtn').addEventListener('click', () => {
+  const allSelected =
+    pixabayHits.length > 0 &&
+    pixabayHits.every(photo => selectedImageIds.has(photo.id));
+
+  if (allSelected) {
+    selectedImageIds.clear();
+  } else {
+    pixabayHits.forEach(photo => selectedImageIds.add(photo.id));
+  }
+
+  renderImageResults();
+});
+
+$('addImagesBtn').addEventListener('click', async () => {
+  const selected = pixabayHits.filter(photo =>
+    selectedImageIds.has(photo.id)
+  );
+
+  if (!selected.length) {
+    status('Select at least one image first.');
+    return;
+  }
+
+  const existingIds = new Set(
+    items.map(item => item.pixabayId).filter(Boolean)
+  );
+
+  const newPhotos = selected.filter(
+    photo => !existingIds.has(photo.id)
+  );
+
+  if (!newPhotos.length) {
+    status('Those images are already in your video.');
+    return;
+  }
+
+  const additions = newPhotos.map(photo => ({
+    name: 'Pixabay - ' + (photo.tags || photo.id),
+    url: photo.webformatURL,
+    type: 'image',
+    duration: Math.max(1, Number($('perImage').value) || 2),
+    el: null,
+    pixabayId: photo.id,
+    photographer: photo.user || '',
+    pageURL: photo.pageURL || ''
+  }));
+
+  items.push(...additions);
+
+  try {
+    await loadItemElements();
+    renderList();
+    drawFrame(0);
+
+    status(
+      'Added ' + additions.length +
+      ' photos. Your existing preview and export are ready.'
+    );
+  } catch (error) {
+    items = items.filter(item => !additions.includes(item));
+    renderList();
+
+    status(
+      'Could not load the selected images. Try searching again.'
+    );
+  }
+});
+
+$('length').addEventListener('input', updateImageSearchInfo);
+$('perImage').addEventListener('input', updateImageSearchInfo);
+ 
 
 const layerDefs = [
   {id:'top',title:'Top text'},
@@ -325,6 +612,7 @@ async function loadItemElements(){
 
     if(it.type === 'image'){
       const img = new Image();
+     img.crossOrigin = 'anonymous';
       img.src = it.url;
       await new Promise((resolve,reject) => {
         img.onload = resolve;
