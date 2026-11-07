@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101827">
+<title>SpeakMate — Your English Friend</title>
+<style>
+:root{--bg:#0d1422;--panel:#151f30;--panel2:#1b2940;--text:#edf3ff;--muted:#9eacc2;--accent:#7c9cff;--green:#39c58a;--line:#2b3a52}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#101b2e,#0b1220 60%);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh}
+.app{max-width:760px;margin:auto;padding:22px 16px 36px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:20px}
+.brand{font-weight:800;font-size:22px;letter-spacing:.2px}.tag{color:var(--green);font-size:12px;border:1px solid #286c57;padding:4px 9px;border-radius:99px}
+.intro{text-align:center;padding:22px 12px 18px}.orb{width:82px;height:82px;border-radius:50%;margin:0 auto 14px;background:radial-gradient(circle at 35% 30%,#b8c9ff,#6e85ee 35%,#3948a0 72%,#202b58);box-shadow:0 0 38px #657fff55;display:grid;place-items:center;font-size:34px}
+h1{font-size:27px;margin:0 0 5px}.sub{color:var(--muted);margin:0}
+.status{display:inline-flex;align-items:center;gap:7px;margin-top:13px;padding:6px 11px;border-radius:99px;background:#1a2940;color:#c8d6f0;font-size:12px}
+.dot{width:7px;height:7px;background:var(--green);border-radius:50%}
+.chat{background:#111c2c;border:1px solid var(--line);border-radius:20px;padding:15px;height:min(48vh,430px);min-height:260px;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:88%;padding:11px 14px;border-radius:16px;white-space:pre-wrap;overflow-wrap:anywhere}.ai{align-self:flex-start;background:var(--panel2);border-bottom-left-radius:5px}.you{align-self:flex-end;background:#314b83;border-bottom-right-radius:5px}
+.who{font-size:11px;color:#b8c8e4;margin-bottom:3px;font-weight:700}.msg p{margin:0}
+.controls{display:flex;gap:10px;margin-top:13px}.mic{flex:1;border:0;border-radius:15px;padding:15px;background:var(--green);color:#062519;font-size:16px;font-weight:800;cursor:pointer;min-height:54px}.mic.listening{background:#ff7777;color:#310b0b;animation:pulse 1.2s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 8px #ff777722}}
+.secondary{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:14px;padding:12px 15px;cursor:pointer}
+.typebar{display:flex;gap:8px;margin-top:10px}.typebar input{min-width:0;flex:1;background:#111c2c;border:1px solid var(--line);border-radius:13px;padding:13px;color:var(--text);font:inherit}.typebar button{background:var(--accent);color:#08132a;border:0;border-radius:13px;padding:0 17px;font-weight:800}
+.hint{font-size:12px;color:var(--muted);margin:9px 3px 0}.review{margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:15px}.review h2{font-size:17px;margin:0 0 5px}.review p{margin:0;color:var(--muted);font-size:13px}
+.reviewout{margin-top:12px;display:none}.reviewitem{padding:11px;background:#101a2a;border-radius:12px;margin-top:8px}.reviewitem b{display:block;font-size:12px;color:#a9bbdb;margin-bottom:3px}
+.footer{text-align:center;color:#73839e;font-size:11px;margin-top:18px}
+.settings{margin-top:13px}.settings summary{color:var(--muted);font-size:13px;cursor:pointer}.settings input{width:100%;margin-top:9px;background:#0e1929;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px}.settings small{color:var(--muted);display:block;margin-top:6px}
+@media(max-width:480px){.app{padding:15px 12px 28px}.intro{padding-top:14px}.chat{height:43vh}.controls .secondary{padding:10px}}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="top"><div class="brand">✦ SpeakMate</div><span class="tag">PERSONAL EDITION</span></header>
+  <section class="intro">
+    <div class="orb">✦</div>
+    <h1>Hey! Ready to talk?</h1>
+    <p class="sub">I'm your English-speaking friend. Take your time.</p>
+    <div class="status"><span class="dot"></span><span id="status">Ready when you are</span></div>
+  </section>
+
+  <section class="chat" id="chat" aria-live="polite">
+    <div class="msg ai"><div class="who">SPEAKMATE</div><p>Hi macha! 😊 How was your day? Tell me anything. You can mix Telugu and English. I'll listen first and give your English review at the end.</p></div>
+  </section>
+
+  <div class="controls">
+    <button class="mic" id="micBtn">🎙 Tap to speak</button>
+    <button class="secondary" id="finishBtn" title="Finish and review">Finish</button>
+  </div>
+  <div class="typebar">
+    <input id="typed" type="text" placeholder="Or type your message..." autocomplete="off">
+    <button id="sendBtn">Send</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:9px;margin-top:9px;color:var(--muted);font-size:12px">
+    <label for="speechLang">Mic language:</label>
+    <select id="speechLang" style="background:#111c2c;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:7px">
+      <option value="en-IN">English (India)</option>
+      <option value="te-IN">Telugu (India)</option>
+    </select>
+    <span>Try English first for speaking practice.</span>
+  </div>
+  <p class="hint">Speak naturally in Telugu + English. I won't interrupt to correct you. This version uses demo replies until we connect the AI service.</p>
+
+  <section class="review">
+    <h2>📝 End-of-session review</h2>
+    <p>When you press Finish, your conversation will be reviewed for useful corrections and new words.</p>
+    <div class="reviewout" id="reviewout"></div>
+  </section>
+
+  <details class="settings">
+    <summary>Connection settings (for AI conversation)</summary>
+    <input id="endpoint" type="url" placeholder="Your secure AI backend URL">
+    <button class="secondary" id="saveEndpoint" style="margin-top:8px">Save connection</button>
+    <small>Keep AI API keys on a secure backend, never in this HTML file. We'll connect the backend in the next step.</small>
+  </details>
+  <div class="footer">A private practice space. Mistakes are welcome. 🌱</div>
+</main>
+<script>
+const chat=document.getElementById('chat'), micBtn=document.getElementById('micBtn'), statusEl=document.getElementById('status');
+const typed=document.getElementById('typed'), endpointInput=document.getElementById('endpoint');
+let turns=[], recognition=null, listening=false, busy=false;
+endpointInput.value=localStorage.getItem('speakmate_endpoint')||'';
+
+function addMessage(role,text){
+  const box=document.createElement('div'); box.className='msg '+(role==='you'?'you':'ai');
+  const who=document.createElement('div'); who.className='who'; who.textContent=role==='you'?'YOU':'SPEAKMATE';
+  const p=document.createElement('p'); p.textContent=text;
+  box.append(who,p); chat.append(box); chat.scrollTop=chat.scrollHeight;
+}
+function setStatus(s){statusEl.textContent=s}
+function speak(text){
+  if(!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text); u.lang='en-US'; u.rate=0.94;
+  window.speechSynthesis.speak(u);
+}
+function localReply(text){
+  const t=text.toLowerCase();
+  if(/hello|hi|hey/.test(t)) return "Hey! It's good to talk with you. What would you like to chat about today?";
+  if(/work|office|site|manager/.test(t)) return "That sounds interesting. What happened next? Tell me a little more.";
+  if(/sad|tired|stress|worried/.test(t)) return "I hear you. Take your time. What do you think made you feel that way?";
+  if(/thank/.test(t)) return "You're welcome! Let's keep practising. What else is on your mind?";
+  return "I see. Tell me more about that. Why was it important to you?";
+}
+async function getReply(text){
+  const url=localStorage.getItem('speakmate_endpoint');
+  if(url){
+    try{
+      const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'chat',message:text,history:turns.slice(-12)})});
+      if(!r.ok) throw new Error('Backend response '+r.status);
+      const data=await r.json(); if(data.reply) return data.reply;
+    }catch(e){console.warn(e); return "I couldn't reach the AI service just now. Please check your internet or connection settings. We can try again."}
+  }
+  return localReply(text);
+}
+async function send(text){
+  text=text.trim(); if(!text||busy)return;
+  busy=true; turns.push({role:'user',content:text}); addMessage('you',text); typed.value=''; setStatus('Thinking...');
+  const reply=await getReply(text);
+  turns.push({role:'assistant',content:reply}); addMessage('ai',reply); speak(reply);
+  setStatus('Listening whenever you are'); busy=false;
+}
+function setupRecognition(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){
+    setStatus('Voice recognition is not available in this browser. Use typing for now, or open this page in Chrome over HTTPS.');
+    micBtn.disabled=true;micBtn.style.opacity='.55';return;
+  }
+  recognition=new SR();
+  recognition.lang=document.getElementById('speechLang').value;
+  recognition.interimResults=true;
+  recognition.continuous=false;
+  let finalText='';
+  recognition.onstart=()=>{
+    finalText='';
+    listening=true;
+    micBtn.classList.add('listening');
+    micBtn.textContent='🔴 Listening... tap to stop';
+    setStatus('Listening — speak, then pause for a moment');
+  };
+  recognition.onresult=e=>{
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const part=e.results[i][0].transcript;
+      if(e.results[i].isFinal) finalText += part+' ';
+      else interim += part;
+    }
+    typed.value=(finalText+interim).trim();
+  };
+  recognition.onerror=e=>{
+    setStatus('Microphone error: '+e.error+'. Check Chrome microphone permission and internet.');
+    stopListening();
+  };
+  recognition.onend=()=>{
+    // Some Android Chrome sessions return interim text but no final result.
+    const captured=(finalText||typed.value||'').trim();
+    stopListening();
+    if(captured) send(captured);
+    else setStatus('I did not catch that. Tap the mic and try again, or type your message.');
+  };
+}
+function stopListening(){listening=false;micBtn.classList.remove('listening');micBtn.textContent='🎙 Tap to speak'}
+micBtn.addEventListener('click',()=>{
+  if(listening){recognition.stop();return}
+  setupRecognition();
+  if(!recognition)return;
+  recognition.lang=document.getElementById('speechLang').value;
+  typed.value='';
+  try{recognition.start()}catch(e){setStatus('Please wait a moment and try again.')}
+});
+document.getElementById('sendBtn').addEventListener('click',()=>send(typed.value));
+typed.addEventListener('keydown',e=>{if(e.key==='Enter')send(typed.value)});
+document.getElementById('saveEndpoint').addEventListener('click',()=>{
+  const value=endpointInput.value.trim(); if(value&&!/^https:\/\//i.test(value)){alert('Please enter a secure https:// backend URL.');return}
+  localStorage.setItem('speakmate_endpoint',value);alert('Connection setting saved.');
+});
+document.getElementById('finishBtn').addEventListener('click',async()=>{
+  if(!turns.length){addMessage('ai',"We haven't had a conversation yet. Talk to me first — there's no pressure.");return}
+  setStatus('Preparing your review...');
+  const out=document.getElementById('reviewout');out.style.display='block';out.innerHTML='';
+  const url=localStorage.getItem('speakmate_endpoint');
+  if(url){
+    try{
+      const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'review',history:turns})});
+      if(!r.ok)throw new Error('Review unavailable');
+      const data=await r.json(); renderReview(data.review||data.reply||'No review returned.');
+      setStatus('Your review is ready');return;
+    }catch(e){console.warn(e)}
+  }
+  renderReview("AI review will be available after we connect your secure AI backend in Step 2. For now, keep practising — consistency matters more than perfect grammar.");
+  setStatus('Session finished');
+});
+function renderReview(content){
+  const out=document.getElementById('reviewout');out.replaceChildren();
+  const item=document.createElement('div');item.className='reviewitem';item.textContent=content;out.append(item);
+}
+setupRecognition();
+</script>
+</body>
+</html>
